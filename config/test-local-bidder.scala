@@ -11,7 +11,7 @@ new ParrotLauncherConfig {
     requestRate = 5
     maxRequests = 20
     timeUnit = "MINUTES"
-    reuseFile = true
+    reuseFile = false
     scheme = "http"
     parser = "http"
     verboseCmd = true
@@ -21,6 +21,10 @@ new ParrotLauncherConfig {
         level = Level.DEBUG,
         handlers = new ConsoleHandlerConfig()
     )
+
+    //TODO: can't get this to work
+//    imports = "import org.jboss.netty.handler.codec.http.HttpResponse, import me.sonar.adx.openrtb.BidLoadTest"
+//    loadTest = "new BidLoadTest(service.get)"
 }
 
 
