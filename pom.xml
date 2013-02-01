@@ -110,7 +110,13 @@
       <artifactId>util-logging</artifactId>
       <version>5.3.6</version>
     </dependency>
-    <!-- Test -->
+    <dependency>
+        <groupId>com.google.guava</groupId>
+        <artifactId>guava</artifactId>
+        <!-- keep this in sync with storm -->
+        <version>13.0</version>
+    </dependency>
+      <!-- Test -->
     <dependency>
       <groupId>org.scala-tools.testing</groupId>
       <artifactId>specs_2.9.1</artifactId>
