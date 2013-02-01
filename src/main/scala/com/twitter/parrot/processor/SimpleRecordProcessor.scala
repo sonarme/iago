@@ -39,7 +39,8 @@ class SimpleRecordProcessor(service: ParrotService[ParrotRequest, HttpResponse],
       UriParser(line) match {
         case Return(uri) =>
           if (!uri.path.isEmpty && !line.startsWith("#")) {
-            val request = new ParrotRequest(target, None, Nil, uri, line)
+            val body = "{\"id\" : \"BidRequest1\", \"at\" : 1, \"tmax\" : 100,  \"imp\" : [ {\"impid\" : \"BidRequest1Impression1\", \"wseat\" : [ \"seat\" ],    \"h\" : 200,    \"w\" : 300,    \"pos\" : 18,    \"instl\" : 18,    \"btype\" : [ \"btype\" ],    \"battr\" : [ \"battr\" ] } ],  \"site\" : {\"sid\": \"sonar.me\", \"name\": \"sonar.me\", \"domain\": \"sonar.me\", \"pid\": \"pid\", \"pub\": \"pub\", \"pdomain\": \"pdomain\", \"cat\": [ ], \"keywords\": \"foo,bar,keywords\",  \"page\": \"page\", \"ref\":\"ref\", \"search\": \"search\"  }, \"app\" : null,  \"device\" : { \"did\": \"foo\", \"dpid\":\"asdf\", \"country\": \"USA\", \"carrier\":\"carrier\", \"ua\": \"ua\", \"make\":\"make\", \"model\":\"iphone\", \"os\":\"ios\", \"osv\":\"5\", \"js\":0, \"loc\": \"40.750580,-73.993580\", \"ip\":\"69.38.227.134\"},  \"user\" : {\"uid\":\"bar\", \"yob\":4, \"gender\":\"male\", \"zip\":\"10003\", \"country\":\"USA\", \"keywords\":\"keyword\"},  \"restrictions\": null }"
+            val request = new ParrotRequest(target, None, Nil, uri, line, method = "POST", body = body)
             Some(service(request))
           }
           else
