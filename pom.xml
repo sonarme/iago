@@ -21,6 +21,7 @@
     <scala.version>2.9.2</scala.version>
     <mainClass>com.twitter.parrot.launcher.LauncherMain</mainClass>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <DossierDTOVersion>1.0-SNAPSHOT</DossierDTOVersion>
   </properties>
   <repositories>
     <repository>
@@ -123,6 +124,11 @@
       <version>1.6.9</version>
       <scope>test</scope>
     </dependency>
+      <dependency>
+          <groupId>com.sonar</groupId>
+          <artifactId>dossier-dto</artifactId>
+          <version>${DossierDTOVersion}</version>
+      </dependency>
   </dependencies>
   <build>
     <sourceDirectory>src/main/scala</sourceDirectory>
