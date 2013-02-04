@@ -33,26 +33,31 @@ import java.util.Random
  */
 class SimpleRecordProcessor(service: ParrotService[ParrotRequest, HttpResponse],
                             config: ParrotServerConfig[ParrotRequest, HttpResponse])
-  extends RecordProcessor {
+        extends RecordProcessor {
 
-  def processLines(job: ParrotJob, lines: Seq[String]) {
-    lines flatMap { line =>
-      val target = job.victims.get(config.randomizer.nextInt(job.victims.size))
-      UriParser(line) match {
-        case Return(uri) =>
-          if (!uri.path.isEmpty && !line.startsWith("#")) {
-              val ip = InetAddresses.fromInteger(new Random().nextInt()).getHostAddress
-            val body = "{\"id\" : \"BidRequest1\", \"at\" : 1, \"tmax\" : 100,  \"imp\" : [ {\"impid\" : \"BidRequest1Impression1\", \"wseat\" : [ \"seat\" ],    \"h\" : 200,    \"w\" : 300,    \"pos\" : 18,    \"instl\" : 18,    \"btype\" : [ \"btype\" ],    \"battr\" : [ \"battr\" ] } ],  \"site\" : {\"sid\": \"sonar.me\", \"name\": \"sonar.me\", \"domain\": \"sonar.me\", \"pid\": \"pid\", \"pub\": \"pub\", \"pdomain\": \"pdomain\", \"cat\": [ ], \"keywords\": \"foo,bar,keywords\",  \"page\": \"page\", \"ref\":\"ref\", \"search\": \"search\"  }, \"app\" : null,  \"device\" : { \"did\": \"foo\", \"dpid\":\"asdf\", \"country\": \"USA\", \"carrier\":\"carrier\", \"ua\": \"ua\", \"make\":\"make\", \"model\":\"iphone\", \"os\":\"ios\", \"osv\":\"5\", \"js\":0, \"loc\": \"40.750580,-73.993580\", \"ip\":\"" + ip + "\"},  \"user\" : {\"uid\":\"bar\", \"yob\":4, \"gender\":\"male\", \"zip\":\"10003\", \"country\":\"USA\", \"keywords\":\"keyword\"},  \"restrictions\": null }"
-            val request = new ParrotRequest(target, None, Nil, uri, line, method = "POST", body = body)
-            Some(service(request))
-          }
-          else
-            None
-        case Throw(t) =>
-          Stats.incr("bad_lines")
-          Stats.incr("bad_lines/" + t.getClass.getName)
-          None
-      }
+    val ips = List[String]((0 to 100) map InetAddresses.fromInteger(new Random().nextInt()).getHostAddress)
+
+
+    def processLines(job: ParrotJob, lines: Seq[String]) {
+        lines flatMap {
+            line =>
+                val target = job.victims.get(config.randomizer.nextInt(job.victims.size))
+                val r = new Random()
+                UriParser(line) match {
+                    case Return(uri) =>
+                        if (!uri.path.isEmpty && !line.startsWith("#")) {
+                            val ip = InetAddresses.fromInteger(new Random().nextInt()).getHostAddress
+                            val body = "{\"id\" : \"BidRequest1\", \"at\" : 1, \"tmax\" : 100,  \"imp\" : [ {\"impid\" : \"BidRequest1Impression1\", \"wseat\" : [ \"seat\" ],    \"h\" : 200,    \"w\" : 300,    \"pos\" : 18,    \"instl\" : 18,    \"btype\" : [ \"btype\" ],    \"battr\" : [ \"battr\" ] } ],  \"site\" : {\"sid\": \"sonar.me\", \"name\": \"sonar.me\", \"domain\": \"sonar.me\", \"pid\": \"pid\", \"pub\": \"pub\", \"pdomain\": \"pdomain\", \"cat\": [ ], \"keywords\": \"foo,bar,keywords\",  \"page\": \"page\", \"ref\":\"ref\", \"search\": \"search\"  }, \"app\" : null,  \"device\" : { \"did\": \"foo\", \"dpid\":\"asdf\", \"country\": \"USA\", \"carrier\":\"carrier\", \"ua\": \"ua\", \"make\":\"make\", \"model\":\"iphone\", \"os\":\"ios\", \"osv\":\"5\", \"js\":0, \"loc\": \"40.750580,-73.993580\", \"ip\":\"" + ips(r.nextInt(100)) + "\"},  \"user\" : {\"uid\":\"bar\", \"yob\":4, \"gender\":\"male\", \"zip\":\"10003\", \"country\":\"USA\", \"keywords\":\"keyword\"},  \"restrictions\": null }"
+                            val request = new ParrotRequest(target, None, Nil, uri, line, method = "POST", body = body)
+                            Some(service(request))
+                        }
+                        else
+                            None
+                    case Throw(t) =>
+                        Stats.incr("bad_lines")
+                        Stats.incr("bad_lines/" + t.getClass.getName)
+                        None
+                }
+        }
     }
-  }
 }
