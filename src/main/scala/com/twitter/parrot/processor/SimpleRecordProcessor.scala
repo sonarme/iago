@@ -63,16 +63,15 @@ class SimpleRecordProcessor(service: ParrotService[ParrotRequest, HttpResponse],
                 val target = job.victims.get(config.randomizer.nextInt(job.victims.size))
                 BidParser(line) match {
                     case Return(bid) =>
-                            val Array(lat, lng) = if (bid.latlng != null) bid.latlng.split(",").map(_.toDouble) else Array(0.0, 0.0)
-                                                    val geoData = Geo(lat, lng, country = bid.country, city = bid.city, zip = bid.zip)
+                        val geoData = Geo(bid.lat, bid.lng, country = bid.country, city = bid.city, zip = bid.zip)
 
-                            val bidRequest = BidRequest("1", List[Impression](), app = App(bid.site, name = "sonar", domain = "sonar.me", publisher = Publisher(id = bid.pub, cat = List[String](bid.category))), device = Device(ip = bid.clientIp, geo = geoData, os = bid.os, make = bid.handset))
+                        val bidRequest = BidRequest("1", List[Impression](), app = App(bid.site, name = "sonar", domain = "sonar.me", publisher = Publisher(id = bid.pub, cat = List[String](bid.category))), device = Device(ip = bid.clientIp, geo = geoData, os = bid.os, make = bid.handset))
 
-                            val writer = new StringWriter
-                            generate[BidRequest](bidRequest, writer)
-                            val body = writer.toString
-                            val request = new ParrotRequest(target, None, Nil, Uri("/bid", Nil), line, method = "POST", body = body)
-                            Some(service(request))
+                        val writer = new StringWriter
+                        generate[BidRequest](bidRequest, writer)
+                        val body = writer.toString
+                        val request = new ParrotRequest(target, None, Nil, Uri("/bid", Nil), line, method = "POST", body = body)
+                        Some(service(request))
                     case Throw(t) =>
                         Stats.incr("bad_lines")
                         Stats.incr("bad_lines/" + t.getClass.getName)

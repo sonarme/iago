@@ -19,7 +19,8 @@ case class Bid(actionType: String = null,
                city: String = null,
                ciType: String = null,
                clientIp: String = null,
-               latlng: String = null)
+               lat: Double = 0.0,
+               lng: Double = 0.0)
 
 object BidParser {
     def apply(str: String): Try[Bid] = try {
@@ -41,9 +42,10 @@ object BidParser {
         val city = bid(13)
         val ciType = bid(14)
         val clientIp = bid(15)
-        val latlng = if (bid.length > 16) URLDecoder.decode(bid(16), "UTF-8") else null
-        Return(Bid(actionType, res, timestamp, bidPrice, handset, jtreqid, pub, site, category, trafficpartner, country, os, zip, city, ciType, clientIp, latlng))
-    } catch { case t =>
-        Throw(t)
+        val Array(lat, lng) = if (bid.length > 16) URLDecoder.decode(bid(16), "UTF-8").split(",").map(_.toDouble) else Array(0.0, 0.0)
+        Return(Bid(actionType, res, timestamp, bidPrice, handset, jtreqid, pub, site, category, trafficpartner, country, os, zip, city, ciType, clientIp, lat, lng))
+    } catch {
+        case t =>
+            Throw(t)
     }
 }
