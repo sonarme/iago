@@ -19,11 +19,32 @@ import com.twitter.ostrich.stats.Stats
 import com.twitter.parrot.config.ParrotServerConfig
 import com.twitter.parrot.server.{ParrotRequest, ParrotService}
 import com.twitter.parrot.thrift.ParrotJob
-import com.twitter.parrot.util.UriParser
+import com.twitter.parrot.util.{Uri, UriParser}
 import com.twitter.util.{Return, Throw}
 import org.jboss.netty.handler.codec.http.HttpResponse
 import com.google.common.net.InetAddresses
 import java.util.Random
+import com.sonar.dossier.dto.GeodataDTO
+import com.sonar.expedition.common.adx.search.model._
+import com.codahale.jerkson.Json._
+import java.io.StringWriter
+import me.sonar.adx.openrtb.util.BidParser
+import com.twitter.util.Throw
+import scala.Some
+import com.twitter.util.Return
+import com.sonar.dossier.dto.GeodataDTO
+import scala.Some
+import com.twitter.util.Throw
+import com.twitter.util.Return
+import com.sonar.dossier.dto.GeodataDTO
+import com.sonar.expedition.common.adx.search.model.App
+import com.sonar.expedition.common.adx.search.model.Device
+import scala.Some
+import com.sonar.expedition.common.adx.search.model.Publisher
+import com.twitter.util.Throw
+import com.sonar.expedition.common.adx.search.model.Impression
+import com.sonar.expedition.common.adx.search.model.BidRequest
+import com.twitter.util.Return
 import com.sonar.dossier.dto.GeodataDTO
 
 /**
@@ -36,31 +57,22 @@ class SimpleRecordProcessor(service: ParrotService[ParrotRequest, HttpResponse],
                             config: ParrotServerConfig[ParrotRequest, HttpResponse])
         extends RecordProcessor {
 
-    val ips = for (i <- 0 to 100) yield InetAddresses.fromInteger(new Random().nextInt()).getHostAddress
-    val locations = for (i <- 0 to 50) yield getRandomGeodata
-
-    def getRandomGeodata = new GeodataDTO(getRandomInRange(35, 45), getRandomInRange(-70, -80))
-
-    def getRandomInRange(from: Double, to: Double) = (scala.math.random * (to - from) + from)
-
     def processLines(job: ParrotJob, lines: Seq[String]) {
         lines flatMap {
             line =>
                 val target = job.victims.get(config.randomizer.nextInt(job.victims.size))
-                val r = new Random()
-                UriParser(line) match {
-                    case Return(uri) =>
-                        if (!uri.path.isEmpty && !line.startsWith("#")) {
-                            val ip = ips.toSeq(r.nextInt(100))
-                            val GeodataDTO(lat, lng) = locations.toSeq(r.nextInt(50))
-                            val latlng = lat + "," + lng
+                BidParser(line) match {
+                    case Return(bid) =>
+                            val Array(lat, lng) = if (bid.latlng != null) bid.latlng.split(",").map(_.toDouble) else Array(0.0, 0.0)
+                                                    val geoData = Geo(lat, lng, country = bid.country, city = bid.city, zip = bid.zip)
 
-                            val body = "{\"id\" : \"BidRequest1\", \"at\" : 1, \"tmax\" : 100,  \"imp\" : [ {\"impid\" : \"BidRequest1Impression1\", \"wseat\" : [ \"seat\" ],    \"h\" : 200,    \"w\" : 300,    \"pos\" : 18,    \"instl\" : 18,    \"btype\" : [ \"btype\" ],    \"battr\" : [ \"battr\" ] } ],  \"site\" : {\"sid\": \"sonar.me\", \"name\": \"sonar.me\", \"domain\": \"sonar.me\", \"pid\": \"pid\", \"pub\": \"pub\", \"pdomain\": \"pdomain\", \"cat\": [ ], \"keywords\": \"foo,bar,keywords\",  \"page\": \"page\", \"ref\":\"ref\", \"search\": \"search\"  }, \"app\" : null,  \"device\" : { \"did\": \"foo\", \"dpid\":\"asdf\", \"country\": \"USA\", \"carrier\":\"carrier\", \"ua\": \"ua\", \"make\":\"make\", \"model\":\"iphone\", \"os\":\"ios\", \"osv\":\"5\", \"js\":0, \"loc\": \"" + latlng + "\", \"ip\":\"" + ip + "\"},  \"user\" : {\"uid\":\"bar\", \"yob\":4, \"gender\":\"male\", \"zip\":\"10003\", \"country\":\"USA\", \"keywords\":\"keyword\"},  \"restrictions\": null }"
-                            val request = new ParrotRequest(target, None, Nil, uri, line, method = "POST", body = body)
+                            val bidRequest = BidRequest("1", List[Impression](), app = App(bid.site, name = "sonar", domain = "sonar.me", publisher = Publisher(id = bid.pub, cat = List[String](bid.category))), device = Device(ip = bid.clientIp, geo = geoData, os = bid.os, make = bid.handset))
+
+                            val writer = new StringWriter
+                            generate[BidRequest](bidRequest, writer)
+                            val body = writer.toString
+                            val request = new ParrotRequest(target, None, Nil, Uri("/bid", Nil), line, method = "POST", body = body)
                             Some(service(request))
-                        }
-                        else
-                            None
                     case Throw(t) =>
                         Stats.incr("bad_lines")
                         Stats.incr("bad_lines/" + t.getClass.getName)
