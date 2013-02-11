@@ -6,9 +6,33 @@ import com.twitter.parrot.config.ParrotServerConfig
 import com.twitter.parrot.processor.RecordProcessor
 import com.twitter.logging.Logger
 import com.twitter.parrot.thrift.ParrotJob
-import com.twitter.parrot.util.UriParser
+import com.twitter.parrot.util.{Uri, UriParser}
 import com.twitter.util.{Throw, Return}
 import com.twitter.ostrich.stats.Stats
+import util.BidParser
+import com.sonar.expedition.common.adx.search.model._
+import scala.Some
+import com.twitter.util.Throw
+import com.twitter.util.Return
+import com.sonar.expedition.common.adx.search.model.App
+import com.sonar.expedition.common.adx.search.model.Geo
+import scala.Some
+import com.sonar.expedition.common.adx.search.model.Publisher
+import com.twitter.util.Throw
+import com.sonar.expedition.common.adx.search.model.Impression
+import com.sonar.expedition.common.adx.search.model.BidRequest
+import com.twitter.util.Return
+import java.io.StringWriter
+import com.codahale.jerkson.Json._
+import com.sonar.expedition.common.adx.search.model.App
+import com.sonar.expedition.common.adx.search.model.Geo
+import com.sonar.expedition.common.adx.search.model.Device
+import scala.Some
+import com.sonar.expedition.common.adx.search.model.Publisher
+import com.twitter.util.Throw
+import com.sonar.expedition.common.adx.search.model.Impression
+import com.sonar.expedition.common.adx.search.model.BidRequest
+import com.twitter.util.Return
 
 class BidLoadTest(service: ParrotService[ParrotRequest, HttpResponse],
                   config: ParrotServerConfig[ParrotRequest, HttpResponse])
@@ -19,15 +43,17 @@ class BidLoadTest(service: ParrotService[ParrotRequest, HttpResponse],
         lines flatMap {
             line =>
                 val target = job.victims.get(config.randomizer.nextInt(job.victims.size))
-                UriParser(line) match {
-                    case Return(uri) =>
-                        if (!uri.path.isEmpty && !line.startsWith("#")) {
-                            val body = "{\"id\" : \"BidRequest1\", \"at\" : 1, \"tmax\" : 100,  \"imp\" : [ {\"impid\" : \"BidRequest1Impression1\", \"wseat\" : [ \"seat\" ],    \"h\" : 200,    \"w\" : 300,    \"pos\" : 18,    \"instl\" : 18,    \"btype\" : [ \"btype\" ],    \"battr\" : [ \"battr\" ] } ],  \"site\" : {\"sid\": \"sonar.me\", \"name\": \"sonar.me\", \"domain\": \"sonar.me\", \"pid\": \"pid\", \"pub\": \"pub\", \"pdomain\": \"pdomain\", \"cat\": [ ], \"keywords\": \"foo,bar,keywords\",  \"page\": \"page\", \"ref\":\"ref\", \"search\": \"search\"  }, \"app\" : null,  \"device\" : { \"did\": \"foo\", \"dpid\":\"asdf\", \"country\": \"USA\", \"carrier\":\"carrier\", \"ua\": \"ua\", \"make\":\"make\", \"model\":\"iphone\", \"os\":\"ios\", \"osv\":\"5\", \"js\":0, \"loc\": \"40.750580,-73.993580\", \"ip\":\"69.38.227.134\"},  \"user\" : {\"uid\":\"bar\", \"yob\":4, \"gender\":\"male\", \"zip\":\"10003\", \"country\":\"USA\", \"keywords\":\"keyword\"},  \"restrictions\": null }"
-                            val request = new ParrotRequest(target, None, Nil, uri, line, method = "POST", body = body)
-                            Some(service(request))
-                        }
-                        else
-                            None
+                BidParser(line) match {
+                    case Return(bid) =>
+                        val geoData = Geo(bid.lat, bid.lng, country = bid.country, city = bid.city, zip = bid.zip)
+
+                        val bidRequest = BidRequest("1", List[Impression](), app = App(bid.site, name = "sonar", domain = "sonar.me", publisher = Publisher(id = bid.pub, cat = List[String](bid.category))), device = Device(ip = bid.clientIp, geo = geoData, os = bid.os, make = bid.handset))
+
+                        val writer = new StringWriter
+                        generate[BidRequest](bidRequest, writer)
+                        val body = writer.toString
+                        val request = new ParrotRequest(target, None, Nil, Uri("/bid", Nil), line, method = "POST", body = body)
+                        Some(service(request))
                     case Throw(t) =>
                         Stats.incr("bad_lines")
                         Stats.incr("bad_lines/" + t.getClass.getName)

@@ -23,8 +23,14 @@ new ParrotLauncherConfig {
     )
 
     //TODO: can't get this to work
-//    imports = "import org.jboss.netty.handler.codec.http.HttpResponse, import me.sonar.adx.openrtb.BidLoadTest"
-//    loadTest = "new BidLoadTest(service.get)"
+    /*
+    imports =
+            """import org.jboss.netty.handler.codec.http.HttpResponse
+            import me.sonar.adx.openrtb.BidLoadTest
+            """
+
+    loadTest = "new BidLoadTest(service.get)"
+    */
 }
 
 
