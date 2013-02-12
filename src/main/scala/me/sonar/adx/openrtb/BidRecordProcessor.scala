@@ -33,16 +33,16 @@ import com.twitter.util.Throw
 import com.sonar.expedition.common.adx.search.model.Impression
 import com.sonar.expedition.common.adx.search.model.BidRequest
 import com.twitter.util.Return
+import scala.util.Random
 
-class BidLoadTest(service: ParrotService[ParrotRequest, HttpResponse],
-                  config: ParrotServerConfig[ParrotRequest, HttpResponse])
-        extends RecordProcessor {
+class BidRecordProcessor(service: ParrotService[ParrotRequest, HttpResponse]) extends RecordProcessor {
     val log = Logger.get(getClass)
+    val rnd = new Random(System.currentTimeMillis())
 
     def processLines(job: ParrotJob, lines: Seq[String]) {
         lines flatMap {
             line =>
-                val target = job.victims.get(config.randomizer.nextInt(job.victims.size))
+                val target = job.victims.get(rnd.nextInt(job.victims.size))
                 BidParser(line) match {
                     case Return(bid) =>
                         val geoData = Geo(bid.lat, bid.lng, country = bid.country, city = bid.city, zip = bid.zip)

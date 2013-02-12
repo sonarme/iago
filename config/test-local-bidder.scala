@@ -22,15 +22,13 @@ new ParrotLauncherConfig {
         handlers = new ConsoleHandlerConfig()
     )
 
-    //TODO: can't get this to work
-    /*
     imports =
-            """import org.jboss.netty.handler.codec.http.HttpResponse
-            import me.sonar.adx.openrtb.BidLoadTest
-            """
+    """import org.jboss.netty.handler.codec.http.HttpResponse
+    import me.sonar.adx.openrtb.BidRecordProcessor
+    """
 
-    loadTest = "new BidLoadTest(service.get)"
-    */
+    loadTest = "new BidRecordProcessor(service.get)"
+
 }
 
 
