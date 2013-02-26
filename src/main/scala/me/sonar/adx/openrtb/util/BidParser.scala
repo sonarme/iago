@@ -2,28 +2,13 @@ package me.sonar.adx.openrtb.util
 
 import com.twitter.util.{Throw, Return, Try}
 import java.net.URLDecoder
-
-case class Bid(actionType: String = null,
-               errid: String = null,
-               timestamp: String = null,
-               bidPrice: String = null,
-               handset: String = null,
-               jtreqid: String = null,
-               pub: String = null,
-               site: String = null,
-               category: String = null,
-               trafficpartner: String = null,
-               country: String = null,
-               os: String = null,
-               zip: String = null,
-               city: String = null,
-               ciType: String = null,
-               clientIp: String = null,
-               lat: Double = 0.0,
-               lng: Double = 0.0)
+import org.openrtb._
+import com.twitter.util.Throw
+import com.twitter.util.Return
+import collection.JavaConversions._
 
 object BidParser {
-    def apply(str: String): Try[Bid] = try {
+    def apply(str: String): Try[BidRequest] = try {
         val bid = str.split(",")
         //(actionType, res, timestamp, bidPrice, handset, jtreqid, pub, site, category, trafficpartner, country, os, zip, city, ciType, clientIp, latlng)
         val actionType = bid(0)
@@ -43,7 +28,35 @@ object BidParser {
         val ciType = bid(14)
         val clientIp = bid(15)
         val Array(lat, lng) = if (bid.length > 16) URLDecoder.decode(bid(16), "UTF-8").split(",").map(_.toDouble) else Array(0.0, 0.0)
-        Return(Bid(actionType, res, timestamp, bidPrice, handset, jtreqid, pub, site, category, trafficpartner, country, os, zip, city, ciType, clientIp, lat, lng))
+
+        val geoData = new Geo()
+        geoData.setLat(lat.toFloat)
+        geoData.setLon(lng.toFloat)
+        geoData.setCountry(country)
+        geoData.setCity(city)
+        geoData.setZip(zip)
+
+        val publisher = new Publisher()
+        publisher.setId(pub)
+        publisher.setCatList(List[String](category))
+
+        val app = new App()
+        app.setDomain("sonar.me")
+        app.setPublisher(publisher)
+        app.setName("sonar")
+
+        val device = new Device()
+        device.setIp(clientIp)
+        device.setGeo(geoData)
+        device.setOs(os)
+        device.setMake(handset)
+
+        val bidRequest = new BidRequest("1")
+        bidRequest.setImpList(List[Impression]())
+        bidRequest.setApp(app)
+        bidRequest.setDevice(device)
+
+        Return(bidRequest)
     } catch {
         case t =>
             Throw(t)

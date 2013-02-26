@@ -2,17 +2,16 @@ package me.sonar.adx.openrtb.util
 
 import org.scalatest.FlatSpec
 import com.twitter.util.{Throw, Return}
-import com.sonar.dossier.dto.GeodataDTO
-import com.sonar.expedition.common.adx.search.model._
+import com.twitter.util.Throw
+
+import com.twitter.util.Return
+import com.codahale.jerkson.SonarJson
+import SonarJson._
 import com.twitter.util.Throw
 import com.twitter.util.Return
-import com.twitter.util.Throw
-import com.sonar.expedition.common.adx.search.model.Impression
-import com.sonar.expedition.common.adx.search.model.App
-import com.sonar.expedition.common.adx.search.model.Geo
-import com.sonar.expedition.common.adx.search.model.BidRequest
-import com.sonar.expedition.common.adx.search.model.Publisher
-import com.twitter.util.Return
+import org.openrtb.BidRequest
+import java.io.StringWriter
+import com.sonar.expedition.common.serialization.Serialization._
 
 class BidParserTest extends FlatSpec {
 
@@ -27,12 +26,12 @@ class BidParserTest extends FlatSpec {
         lines foreach {
             line =>
                 BidParser(line) match {
-                    case Return(bid) =>
-                        val geoData = Geo(bid.lat, bid.lng, country = bid.country, city = bid.city, zip = bid.zip)
-
-                        val bidRequest = BidRequest("1", List[Impression](), app = App(bid.site, name = "sonar", domain = "sonar.me", publisher = Publisher(id = bid.pub, cat = List[String](bid.category))), device = Device(ip = bid.clientIp, geo = geoData, os = bid.os, make = bid.handset))
-
-                        println(bidRequest)
+                    case Return(bidRequest) =>
+                        val writer = new StringWriter
+                        generate[BidRequest](bidRequest, writer)
+                        val body = writer.toString
+                        println(body)
+                        val br = fromByteArray(body.getBytes, new BidRequest)
                         None
                     case Throw(t) =>
                         assert(false)

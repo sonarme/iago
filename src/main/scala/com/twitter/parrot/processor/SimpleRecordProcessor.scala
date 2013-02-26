@@ -23,29 +23,19 @@ import com.twitter.parrot.util.{Uri, UriParser}
 import com.twitter.util.{Return, Throw}
 import org.jboss.netty.handler.codec.http.HttpResponse
 import com.google.common.net.InetAddresses
-import java.util.Random
 import com.sonar.dossier.dto.GeodataDTO
-import com.sonar.expedition.common.adx.search.model._
-import com.codahale.jerkson.Json._
+import com.codahale.jerkson.SonarJson
+import SonarJson._
 import java.io.StringWriter
 import me.sonar.adx.openrtb.util.BidParser
-import com.twitter.util.Throw
+import org.openrtb._
+
+import util.Random
+import com.sonar.expedition.common.serialization.Serialization._
 import scala.Some
-import com.twitter.util.Return
-import com.sonar.dossier.dto.GeodataDTO
-import scala.Some
+import com.twitter.parrot.util.Uri
 import com.twitter.util.Throw
 import com.twitter.util.Return
-import com.sonar.dossier.dto.GeodataDTO
-import com.sonar.expedition.common.adx.search.model.App
-import com.sonar.expedition.common.adx.search.model.Device
-import scala.Some
-import com.sonar.expedition.common.adx.search.model.Publisher
-import com.twitter.util.Throw
-import com.sonar.expedition.common.adx.search.model.Impression
-import com.sonar.expedition.common.adx.search.model.BidRequest
-import com.twitter.util.Return
-import com.sonar.dossier.dto.GeodataDTO
 
 /**
  * This processor just takes a line-separated list of URIs and turns them into requests, for instance:
@@ -56,17 +46,21 @@ import com.sonar.dossier.dto.GeodataDTO
 class SimpleRecordProcessor(service: ParrotService[ParrotRequest, HttpResponse],
                             config: ParrotServerConfig[ParrotRequest, HttpResponse])
         extends RecordProcessor {
+    val rnd = new Random(System.currentTimeMillis())
+
     def processLines(job: ParrotJob, lines: Seq[String]) {
         lines flatMap {
             line =>
-                val target = job.victims.get(config.randomizer.nextInt(job.victims.size))
-                UriParser(line) match {
-                    case Return(uri) =>
-                        if (!uri.path.isEmpty && !line.startsWith("#")) {
-                            Some(service(new ParrotRequest(target, None, Nil, uri, line)))
-                        }
-                        else
-                            None
+                val target = job.victims.get(rnd.nextInt(job.victims.size))
+                BidParser(line) match {
+                    case Return(bidRequest) =>
+                        val writer = new StringWriter
+
+                        generate[BidRequest](bidRequest, writer)
+                        val body = writer.toString
+                        println(body)
+                        val request = new ParrotRequest(target, None, Nil, Uri("/bid", Nil), line, method = "POST", body = body)
+                        Some(service(request))
                     case Throw(t) =>
                         Stats.incr("bad_lines")
                         Stats.incr("bad_lines/" + t.getClass.getName)
